@@ -7,6 +7,7 @@ title JavaToolBox
 :: ── 配置 ──
 set "TOOL_DIR=%~dp0tools"
 set "BUILD=%~dp0tools\.build"
+set "WEB_DIR=%~dp0web"
 set "PORT=8080"
 
 :: ── 检查 JDK ──
@@ -22,6 +23,8 @@ if %errorlevel% neq 0 (
 :: ── 目录 ──
 if not exist "%TOOL_DIR%" mkdir "%TOOL_DIR%"
 if not exist "%BUILD%" mkdir "%BUILD%"
+if not exist "%WEB_DIR%" mkdir "%WEB_DIR%"
+if not exist "%WEB_DIR%\index.html" ( echo. & echo  [ERROR] web\index.html not found & pause & exit /b 1 )
 
 echo.
 echo   ◆ JavaToolBox
