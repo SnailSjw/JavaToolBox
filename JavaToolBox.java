@@ -106,6 +106,8 @@ public class JavaToolBox {
     final ExecutorService pool = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r); t.setDaemon(true); return t;
     });
+    // Prevent process-spawning DoS: max 4 concurrent executions
+    final Semaphore execLimit = new Semaphore(4);
     volatile String compileErr = "";
 
     // ═══════════════════ Entry ═══════════════════
@@ -408,12 +410,23 @@ public class MethodRunner {
 
     void apiRun(HttpExchange x) throws IOException {
         if (!"POST".equals(x.getRequestMethod())) { send(x, 405, "text/plain", "POST only"); return; }
-        String body = new String(x.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        // Limit request body size to 64KB to prevent OOM
+        byte[] raw = x.getRequestBody().readNBytes(65536);
+        if (raw.length >= 65536) { send(x, 413, "application/json", "{\"error\":\"Request body too large (max 64KB)\"}"); return; }
+        String body = new String(raw, StandardCharsets.UTF_8);
         String cls = jv(body, "className"), mtd = jv(body, "methodName");
         if (cls.isEmpty() || mtd.isEmpty()) { send(x, 400, "application/json", "{\"error\":\"className and methodName required\"}"); return; }
-        String[] args = parseArgs(body);
-        try { send(x, 200, "application/json", execute(cls, mtd, args)); }
-        catch (Exception e) { send(x, 200, "application/json", jsonResult("", e.getMessage(), 0, -1)); }
+        // Basic sanity check — reject obviously malformed identifiers
+        if (!cls.matches("[\\w.]+") || !mtd.matches("\\w+")) {
+            send(x, 400, "application/json", "{\"error\":\"Invalid className or methodName\"}"); return;
+        }
+        if (!execLimit.tryAcquire()) { send(x, 429, "application/json", "{\"error\":\"Too many concurrent executions (max 4)\"}"); return; }
+        try {
+            String[] args = parseArgs(body);
+            String result = execute(cls, mtd, args);
+            send(x, 200, "application/json", result);
+        } catch (Exception e) { send(x, 200, "application/json", jsonResult("", e.getMessage(), 0, -1)); }
+        finally { execLimit.release(); }
     }
 
     void apiRefresh(HttpExchange x) throws IOException {
@@ -449,7 +462,25 @@ public class MethodRunner {
     String slurp(InputStream is) { try (var r = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) { return r.lines().collect(Collectors.joining("\n")); } catch (IOException e) { return ""; } }
     String rx(String s, String p) { var m = Pattern.compile(p).matcher(s); return m.find() ? m.group(1) : ""; }
     String[] parseArgs(String body) { var m = Pattern.compile("\"args\"\\s*:\\s*\\[([^\\]]*)\\]").matcher(body); if (m.find()) { var l = new ArrayList<String>(); var am = Pattern.compile("\"([^\"]*)\"").matcher(m.group(1)); while (am.find()) l.add(am.group(1)); return l.toArray(new String[0]); } return new String[0]; }
-    String je(String s) { return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", ""); }
+    String je(String s) {
+        if (s == null) return "";
+        var sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '\\' -> sb.append("\\\\");
+                case '"'  -> sb.append("\\\"");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (c < 0x20) sb.append(String.format("\\u%04x", (int) c));
+                    else sb.append(c);
+                }
+            }
+        }
+        return sb.toString();
+    }
     String jsonResult(String o, String e, long ms, int c) { return "{\"stdout\":\"" + je(o) + "\",\"stderr\":\"" + je(e) + "\",\"ms\":" + ms + ",\"exitCode\":" + c + "}"; }
     String jv(String j, String k) { var m = Pattern.compile("\"" + k + "\"\\s*:\\s*\"([^\"]*)\"").matcher(j); return m.find() ? m.group(1) : ""; }
     String qp(String q, String k) { if (q == null) return ""; for (var p : q.split("&")) { var kv = p.split("=", 2); if (kv.length == 2 && kv[0].equals(k)) try { return URLDecoder.decode(kv[1], "UTF-8"); } catch (Exception ignored) {} } return ""; }

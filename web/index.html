@@ -6,167 +6,979 @@
     <title>JavaToolBox</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/base16/tomorrow-night.min.css">
     <style>
-        :root{--bg:#09090b;--s1:#111114;--s2:#1a1a1e;--s3:#222228;--bd:#2a2a30;--ac:#d4a84b;--ac2:#b8922e;--tx:#c8c4bc;--tx2:#777;--ok:#4ade80;--er:#ef4444;--blue:#60a5fa}
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'JetBrains Mono','Fira Code',Consolas,monospace;font-size:13px;color:var(--tx);background:var(--bg);display:flex;height:100vh;overflow:hidden}
-        aside{width:310px;min-width:310px;background:var(--s1);border-right:1px solid var(--bd);display:flex;flex-direction:column}
-        .hdr{padding:16px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px}
-        .hdr .ico{color:var(--ac);font-size:15px}
-        .hdr .ttl{flex:1;font-size:12px;font-weight:600;letter-spacing:1px}
-        .hdr button{background:none;border:1px solid var(--bd);color:var(--tx2);padding:4px 10px;font:10px inherit;border-radius:4px;cursor:pointer;transition:all .2s}
-        .hdr button:hover{border-color:var(--ac);color:var(--ac)}
-        .search{padding:8px 14px;border-bottom:1px solid var(--bd)}
-        .search input{width:100%;background:var(--s2);border:1px solid var(--bd);color:var(--tx);padding:6px 10px;font:11px inherit;border-radius:4px;outline:none;transition:border-color .2s}
-        .search input:focus{border-color:var(--ac)}
-        .search input::placeholder{color:var(--tx2);opacity:.4}
-        #list{flex:1;overflow-y:auto;padding:4px 0}
-        .grp-hdr{padding:7px 16px;font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;display:flex;align-items:center;gap:6px;transition:color .15s}
-        .grp-hdr:hover{color:var(--tx)}
-        .grp-hdr .arrow{font-size:9px;width:12px;display:inline-block}
-        .grp-hdr .badge{margin-left:auto;background:var(--s3);color:var(--tx2);font-size:9px;padding:1px 6px;border-radius:8px;font-weight:400}
-        .grp-desc{padding:0 16px 4px 32px;font-size:10px;color:var(--tx2);opacity:.45;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .it{padding:6px 16px 6px 32px;cursor:pointer;font-size:11px;color:var(--tx2);transition:all .12s;border-left:2px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .it:hover{background:var(--s2);color:var(--tx)}
-        .it.on{background:var(--s2);border-left-color:var(--ac);color:var(--ac)}
-        .it .mt{color:var(--tx)}
-        .ft{padding:8px 18px;border-top:1px solid var(--bd);font-size:10px;color:var(--tx2)}
-        main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-        .emp{flex:1;display:flex;align-items:center;justify-content:center;color:var(--tx2);font-size:13px}
-        .pnl{flex:1;display:none;flex-direction:column;overflow-y:auto}
-        .pnl.on{display:flex;animation:fi .2s ease}
-        @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-        .ph{padding:28px 36px 18px;border-bottom:1px solid var(--bd)}
-        .ph .ci{font-size:11px;color:var(--tx2);margin-bottom:10px;line-height:1.5}
-        .ph .ci .cn{color:var(--ac);font-weight:500}
-        .ph .ci .cd{opacity:.6}
-        .ph h2{font-size:16px;font-weight:600;margin-bottom:6px;word-break:break-all}
-        .ph h2 .rt{color:var(--blue);font-weight:400;font-size:12px}
-        .ph .doc{font-size:12px;color:var(--tx2);line-height:1.7;margin-top:4px}
-        .ph .ri{font-size:11px;color:var(--tx2);margin-top:5px}
-        .ph .ri .rl{opacity:.5;margin-right:4px}
-        .ph .ti-wrap{font-size:11px;color:var(--tx2);margin-top:4px}
-        .ph .ti-wrap .tl{opacity:.5;margin-right:4px}
-        .ph .ti-wrap .ti{display:inline-block;background:rgba(239,68,68,.08);color:var(--er);padding:1px 6px;border-radius:3px;margin-right:5px;font-size:10px;cursor:help}
-        .ph .src{font-size:10px;color:var(--tx2);opacity:.3;margin-top:6px}
-        .pp{padding:18px 36px 0;display:flex;flex-direction:column;gap:12px}
-        .pp .empty{color:var(--tx2);font-size:11px;font-style:italic}
-        .pr{display:flex;flex-direction:column;gap:3px}
-        .pr label{font-size:10px;color:var(--tx2);display:flex;align-items:center;gap:6px}
-        .pr label .pn{color:var(--tx);font-weight:500}
-        .pr label .pt2{color:var(--blue);font-size:9px;background:rgba(96,165,250,.08);padding:1px 5px;border-radius:3px}
-        .pr input{width:100%;background:var(--s1);border:1px solid var(--bd);color:var(--tx);padding:7px 10px;font:12px inherit;border-radius:4px;outline:none;transition:border-color .2s}
-        .pr input:focus{border-color:var(--ac)}
-        .pr input::placeholder{color:var(--tx2);opacity:.3}
-        .pr .pd{font-size:10px;color:var(--tx2);line-height:1.4;margin-top:2px;padding-left:2px;opacity:.6}
-        .act{padding:14px 36px;display:flex;gap:8px;align-items:center}
-        .btn{background:none;border:1px solid var(--bd);color:var(--tx);padding:7px 18px;font:11px inherit;border-radius:5px;cursor:pointer;transition:all .2s}
-        .btn:hover{border-color:var(--s3);background:var(--s2)}
-        .btn.run{background:var(--ac);border-color:var(--ac);color:#000;font-weight:600}
-        .btn.run:hover{background:var(--ac2);border-color:var(--ac2)}
-        .btn.run:disabled{opacity:.35;cursor:wait}
-        .hint{font-size:10px;color:var(--tx2);opacity:.35}
-        #res{flex:1;margin:8px 36px 28px;border:1px solid var(--bd);border-radius:5px;display:none;flex-direction:column;min-height:0;max-height:50vh}
-        #res.on{display:flex}
-        .rb{padding:7px 12px;background:var(--s1);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;font-size:11px;border-radius:5px 5px 0 0}
-        .tabs{display:flex;background:var(--s1);border-bottom:1px solid var(--bd)}
-        .tab{padding:6px 14px;font-size:11px;cursor:pointer;color:var(--tx2);border-bottom:2px solid transparent;transition:all .12s}
-        .tab:hover{color:var(--tx)}
-        .tab.on{color:var(--ac);border-bottom-color:var(--ac)}
-        .out{flex:1;overflow:auto;padding:12px 14px;background:#050507;border-radius:0 0 5px 5px}
-        .out pre{font:11px/1.7 inherit;white-space:pre-wrap;word-break:break-all}
-        .out pre.so{color:var(--tx)}
-        .out pre.se{color:var(--er)}
-        .ov{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:99}
-        .ov.on{display:flex}
-        .mdl{width:72vw;max-width:860px;max-height:80vh;background:var(--s1);border:1px solid var(--bd);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;animation:fi .2s ease}
-        .mh{padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--tx2)}
-        .mh button{background:none;border:none;color:var(--tx2);font-size:15px;cursor:pointer;padding:4px}
-        .mh button:hover{color:var(--tx)}
-        .mb{flex:1;overflow:auto;padding:14px}
-        .mb pre{font:11px/1.6 inherit;color:var(--tx);white-space:pre}
-        ::-webkit-scrollbar{width:5px;height:5px}
-        ::-webkit-scrollbar-track{background:transparent}
-        ::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
-        ::-webkit-scrollbar-thumb:hover{background:#3a3a42}
-        .sp{display:inline-block;width:11px;height:11px;border:2px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:rn .5s linear infinite;vertical-align:middle;margin-right:5px}
-        @keyframes rn{to{transform:rotate(360deg)}}
+        /* ═══════════════════════════════════════════
+               Quantum Console  ·  Token System
+           ═══════════════════════════════════════════ */
+        :root {
+            --bg:        #070710;
+            --s1:        #0e0e1c;
+            --s2:        #151528;
+            --s3:        #1c1c38;
+            --bd:        #1e1e3a;
+            --bd-glow:   #2a2a55;
+            --ac:        #00e5bf;
+            --ac-dim:    rgba(0, 229, 191, 0.12);
+            --ac-glow:   rgba(0, 229, 191, 0.30);
+            --ac2:       #00c4a0;
+            --sc:        #7c8ce0;
+            --sc-dim:    rgba(124, 140, 224, 0.12);
+            --tx:        #e0e0ec;
+            --tx2:       #9292aa;
+            --ok:        #4ade80;
+            --ok-dim:    rgba(74, 222, 128, 0.10);
+            --er:        #f87171;
+            --er-dim:    rgba(248, 113, 113, 0.10);
+            --radius:    6px;
+            --ease:      0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { height: 100%; }
+
+        body {
+            font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--tx);
+            background: var(--bg);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ═══════════════════════════════
+               Sidebar
+           ═══════════════════════════════ */
+        aside {
+            width: 320px;
+            min-width: 320px;
+            background: var(--s1);
+            border-right: 1px solid var(--bd);
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+            transition: transform var(--ease);
+        }
+
+        /* header */
+        .sb-hd {
+            padding: 20px 18px 16px;
+            border-bottom: 1px solid var(--bd);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .sb-hd .logo {
+            width: 10px; height: 10px;
+            border: 2px solid var(--ac);
+            border-radius: 2px;
+            box-shadow: 0 0 8px var(--ac-glow), inset 0 0 4px var(--ac-dim);
+            flex-shrink: 0;
+        }
+        .sb-hd .name {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            color: var(--tx);
+        }
+        .sb-hd .cnt {
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--tx2);
+            background: var(--s2);
+            padding: 3px 10px;
+            border-radius: 12px;
+            letter-spacing: 0.3px;
+        }
+
+        /* toolbar */
+        .sb-tb {
+            display: flex;
+            gap: 1px;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--bd);
+            flex-shrink: 0;
+        }
+        .sb-tb button {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--tx2);
+            font: 11px/1 inherit;
+            font-weight: 500;
+            padding: 8px 0;
+            cursor: pointer;
+            transition: color var(--ease);
+            border-bottom: 1px solid transparent;
+            margin-bottom: -1px;
+            letter-spacing: 0.2px;
+        }
+        .sb-tb button:hover { color: var(--ac); }
+
+        /* search */
+        .sb-srch {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--bd);
+            flex-shrink: 0;
+            position: relative;
+        }
+        .sb-srch input {
+            width: 100%;
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            color: var(--tx);
+            padding: 9px 12px;
+            font: 13px/1 inherit;
+            font-weight: 400;
+            border-radius: var(--radius);
+            outline: none;
+            transition: border-color var(--ease), box-shadow var(--ease);
+            letter-spacing: 0.2px;
+        }
+        .sb-srch input:focus {
+            border-color: var(--ac);
+            box-shadow: 0 0 0 3px var(--ac-dim), 0 0 12px var(--ac-dim);
+        }
+        .sb-srch input::placeholder { color: var(--tx2); opacity: 0.30; }
+
+        /* list */
+        #list {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 6px 0;
+        }
+
+        .grp-row {
+            position: sticky;
+            top: 0;
+            background: var(--s1);
+            z-index: 2;
+        }
+        .grp-hd {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            user-select: none;
+            color: var(--tx2);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            transition: color 0.15s;
+        }
+        .grp-hd:hover { color: var(--tx); }
+        .grp-hd .arr {
+            font-size: 9px;
+            width: 10px;
+            transition: transform 0.18s;
+            color: var(--tx2);
+        }
+        .grp-hd .arr.open { transform: rotate(90deg); }
+        .grp-hd .tag {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 400;
+            background: var(--s2);
+            color: var(--tx2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: 0.2px;
+        }
+        .grp-note {
+            padding: 0 16px 5px 30px;
+            font-size: 11px;
+            font-weight: 300;
+            color: var(--tx2);
+            opacity: 0.40;
+            line-height: 1.5;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mi {
+            display: block;
+            padding: 6px 16px 6px 30px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--tx2);
+            border-left: 2px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: 0.15px;
+            transition: all 0.12s;
+        }
+        .mi:hover { background: var(--s2); color: var(--tx); }
+        .mi.on {
+            background: var(--s2);
+            border-left-color: var(--ac);
+            color: var(--ac);
+            box-shadow: inset 0 0 20px var(--ac-dim);
+        }
+        .mi .fn { color: var(--tx); }
+        .mi.on .fn { color: var(--ac); }
+
+        /* footer */
+        .sb-ft {
+            padding: 9px 16px;
+            border-top: 1px solid var(--bd);
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--tx2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            letter-spacing: 0.2px;
+        }
+        .sb-ft .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--ok);
+            box-shadow: 0 0 6px var(--ok);
+            flex-shrink: 0;
+        }
+        .sb-ft .dot.err { background: var(--er); box-shadow: 0 0 6px var(--er); }
+
+        /* ═══════════════════════════════
+               Main Panel
+           ═══════════════════════════════ */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(0, 229, 191, 0.03) 0%, transparent 60%),
+                var(--bg);
+            position: relative;
+        }
+        /* Subtle grid dots — sci-fi holographic surface */
+        main::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Empty State ── */
+        .blank {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            color: var(--tx2);
+            text-align: center;
+            padding: 48px;
+            position: relative;
+            z-index: 1;
+        }
+        .blank .hex {
+            width: 72px; height: 72px;
+            border: 1px solid var(--bd);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            opacity: 0.25;
+            margin-bottom: 6px;
+            transform: rotate(45deg);
+        }
+        .blank .hex span { transform: rotate(-45deg); display: block; }
+        .blank .msg { font-size: 14px; font-weight: 500; letter-spacing: 0.3px; }
+        .blank .sub {
+            font-size: 12px;
+            font-weight: 300;
+            opacity: 0.45;
+            letter-spacing: 0.2px;
+            line-height: 1.7;
+        }
+        .blank .sub kbd {
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font: 11px inherit;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+
+        /* ── Method Panel ── */
+        .mp {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            overflow-y: auto;
+            position: relative;
+            z-index: 1;
+        }
+        .mp.on { display: flex; animation: enter 0.28s ease; }
+        @keyframes enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+        /* header */
+        .mp-hd {
+            padding: 28px 40px 18px;
+            border-bottom: 1px solid var(--bd);
+            flex-shrink: 0;
+        }
+        .mp-hd .cls-path {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--tx2);
+            margin-bottom: 10px;
+            letter-spacing: 0.2px;
+        }
+        .mp-hd .cls-path .cn { color: var(--ac); font-weight: 600; }
+        .mp-hd .cls-path .cd { opacity: 0.45; font-size: 11px; }
+
+        .mp-hd h2 {
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            margin-bottom: 6px;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+        .mp-hd h2 .rt { color: var(--sc); font-weight: 500; font-size: 13px; }
+
+        .mp-hd .doc {
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--tx2);
+            line-height: 1.8;
+            margin-top: 8px;
+        }
+
+        .mp-hd .meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--tx2);
+        }
+        .mp-hd .meta-row .ml { opacity: 0.45; margin-right: 4px; font-weight: 500; }
+
+        .mp-hd .throws-row { margin-top: 6px; }
+        .mp-hd .throws-row .tchip {
+            display: inline-block;
+            background: var(--er-dim);
+            color: var(--er);
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin-right: 5px;
+            font-size: 11px;
+            font-weight: 400;
+            cursor: help;
+            letter-spacing: 0.2px;
+        }
+
+        .mp-hd .src-path {
+            font-size: 11px;
+            font-weight: 300;
+            color: var(--tx2);
+            opacity: 0.25;
+            margin-top: 10px;
+            word-break: break-all;
+        }
+
+        /* params */
+        .mp-params {
+            padding: 20px 40px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+        .mp-params .no-params {
+            color: var(--tx2);
+            font-size: 13px;
+            font-weight: 300;
+            font-style: italic;
+        }
+
+        .pr { display: flex; flex-direction: column; gap: 4px; }
+        .pr .pr-lbl {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--tx2);
+            letter-spacing: 0.2px;
+        }
+        .pr .pr-lbl .pr-name { color: var(--tx); font-weight: 600; font-size: 13px; }
+        .pr .pr-lbl .pr-type {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--sc);
+            background: var(--sc-dim);
+            padding: 2px 7px;
+            border-radius: 3px;
+            letter-spacing: 0.3px;
+        }
+        .pr input, .pr textarea {
+            width: 100%;
+            background: var(--s1);
+            border: 1px solid var(--bd);
+            color: var(--tx);
+            padding: 10px 12px;
+            font: 13px/1.5 inherit;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+            border-radius: var(--radius);
+            outline: none;
+            transition: border-color var(--ease), box-shadow var(--ease);
+            resize: vertical;
+        }
+        .pr textarea { min-height: 60px; }
+        .pr input:focus, .pr textarea:focus {
+            border-color: var(--ac);
+            box-shadow: 0 0 0 3px var(--ac-dim), 0 0 12px var(--ac-dim);
+        }
+        .pr input::placeholder, .pr textarea::placeholder { color: var(--tx2); opacity: 0.25; }
+        .pr .pr-hint {
+            font-size: 11px;
+            font-weight: 300;
+            color: var(--tx2);
+            line-height: 1.5;
+            padding-left: 2px;
+            opacity: 0.50;
+            letter-spacing: 0.15px;
+        }
+
+        /* actions */
+        .mp-act {
+            padding: 16px 40px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            background: none;
+            border: 1px solid var(--bd);
+            color: var(--tx);
+            padding: 9px 22px;
+            font: 13px/1 inherit;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all var(--ease);
+            position: relative;
+        }
+        .btn:hover { border-color: var(--bd-glow); background: var(--s2); }
+
+        /* ── The Signature: Glowing Run Button ── */
+        .btn.run {
+            background: var(--ac);
+            border-color: var(--ac);
+            color: #070710;
+            font-weight: 700;
+            box-shadow: 0 0 0 0 var(--ac-glow);
+            animation: breathe 3s ease-in-out infinite;
+        }
+        @keyframes breathe {
+            0%, 100% { box-shadow: 0 0 0 0 var(--ac-glow); }
+            50%      { box-shadow: 0 0 0 8px transparent, 0 0 20px var(--ac-dim); }
+        }
+        .btn.run:hover {
+            background: #1af0cf;
+            border-color: #1af0cf;
+            box-shadow: 0 0 0 6px var(--ac-glow), 0 0 32px var(--ac-glow);
+            animation: none;
+        }
+        .btn.run:disabled {
+            opacity: 0.35;
+            cursor: wait;
+            animation: none;
+            box-shadow: none;
+        }
+        .btn.run:active:not(:disabled) { transform: scale(0.96); }
+
+        .shortcut {
+            font-size: 11px;
+            font-weight: 300;
+            color: var(--tx2);
+            opacity: 0.30;
+            letter-spacing: 0.2px;
+        }
+
+        /* ── Result Panel ── */
+        #res {
+            flex: 1;
+            margin: 8px 40px 24px;
+            border: 1px solid var(--bd);
+            border-radius: var(--radius);
+            display: none;
+            flex-direction: column;
+            min-height: 0;
+            max-height: 50vh;
+            overflow: hidden;
+            background: var(--s1);
+            transition: border-color var(--ease);
+        }
+        #res.on { display: flex; }
+        /* Result glow when data arrives */
+        #res.has-data { border-color: var(--bd-glow); box-shadow: 0 0 12px rgba(0, 229, 191, 0.06); }
+
+        .res-bar {
+            padding: 9px 16px;
+            background: var(--s1);
+            border-bottom: 1px solid var(--bd);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 400;
+            flex-shrink: 0;
+            letter-spacing: 0.2px;
+        }
+        .res-bar .copy-btn {
+            background: none;
+            border: 1px solid transparent;
+            color: var(--tx2);
+            font: 11px/1 inherit;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all var(--ease);
+        }
+        .res-bar .copy-btn:hover { border-color: var(--bd); color: var(--ac); }
+
+        .res-tabs {
+            display: flex;
+            background: var(--s1);
+            border-bottom: 1px solid var(--bd);
+            flex-shrink: 0;
+        }
+        .res-tab {
+            padding: 8px 18px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--tx2);
+            border-bottom: 2px solid transparent;
+            transition: all 0.12s;
+            user-select: none;
+            letter-spacing: 0.2px;
+        }
+        .res-tab:hover { color: var(--tx); }
+        .res-tab.on { color: var(--ac); border-bottom-color: var(--ac); }
+
+        .res-body {
+            flex: 1;
+            overflow: auto;
+            padding: 16px;
+            background: #050510;
+            border-radius: 0 0 var(--radius) var(--radius);
+        }
+        .res-body pre {
+            font: 13px/1.8 inherit;
+            font-weight: 400;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 0;
+        }
+        .res-body pre.stdout { color: var(--tx); }
+        .res-body pre.stderr { color: var(--er); }
+
+        /* ═══════════════════════════════
+               Source Modal
+           ═══════════════════════════════ */
+        .ov {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 15, 0.78);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 99;
+        }
+        .ov.on { display: flex; }
+        .ov .card {
+            width: 76vw;
+            max-width: 900px;
+            max-height: 84vh;
+            background: var(--s1);
+            border: 1px solid var(--bd);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: enter 0.2s ease;
+            box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+        }
+        .ov .card-bar {
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--bd);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--tx2);
+            flex-shrink: 0;
+            letter-spacing: 0.3px;
+        }
+        .ov .card-bar button {
+            background: none;
+            border: 1px solid transparent;
+            color: var(--tx2);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            line-height: 1;
+            transition: all var(--ease);
+        }
+        .ov .card-bar button:hover { color: var(--tx); background: var(--s2); border-color: var(--bd); }
+        .ov .card-body { flex: 1; overflow: auto; padding: 18px; }
+        .ov .card-body pre { margin: 0; }
+        .ov .card-body code { font: 12px/1.7 inherit !important; font-weight: 400 !important; }
+
+        /* ── Syntax Highlight Overrides ── */
+        .hljs { background: transparent !important; color: var(--tx) !important; }
+        .hljs-keyword  { color: #00e5bf !important; font-weight: 500; }
+        .hljs-type     { color: #f0c060 !important; }
+        .hljs-string   { color: #7dd3a8 !important; }
+        .hljs-comment  { color: #5a5580 !important; font-style: italic; }
+        .hljs-number   { color: #e0a060 !important; }
+        .hljs-literal  { color: #00e5bf !important; }
+        .hljs-meta     { color: #7c8ce0 !important; }
+        .hljs-params   { color: #e0e0ec !important; }
+        .hljs-built_in { color: #00e5bf !important; }
+        .hljs-title.class_    { color: #f0c060 !important; }
+        .hljs-title.function_ { color: #b8b0e8 !important; }
+        .hljs-attr     { color: #00e5bf !important; }
+        .hljs-selector-tag    { color: #00e5bf !important; }
+        .hljs-variable.language_ { color: #00e5bf !important; }
+
+        /* ═══════════════════════════════
+               Toast
+           ═══════════════════════════════ */
+        .toasts {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background: var(--s1);
+            border: 1px solid var(--bd);
+            border-radius: var(--radius);
+            padding: 11px 18px;
+            font-size: 12px;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+            color: var(--tx);
+            max-width: 380px;
+            animation: slide 0.25s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        .toast.err { border-color: var(--er); color: var(--er); }
+        .toast.ok  { border-color: var(--ok); color: var(--ok); }
+        @keyframes slide { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
+
+        /* ═══════════════════════════════
+               Spinner
+           ═══════════════════════════════ */
+        .spin {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid var(--bd);
+            border-top-color: var(--ac);
+            border-radius: 50%;
+            animation: spn 0.55s linear infinite;
+            vertical-align: middle;
+            margin-right: 7px;
+        }
+        @keyframes spn { to { transform: rotate(360deg); } }
+
+        /* ═══════════════════════════════
+               Scrollbar
+           ═══════════════════════════════ */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--bd-glow); }
+
+        /* ═══════════════════════════════
+               Mobile
+           ═══════════════════════════════ */
+        .menu-btn {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 30;
+            background: var(--s1);
+            border: 1px solid var(--bd);
+            color: var(--tx);
+            padding: 8px 12px;
+            font: 14px/1 inherit;
+            border-radius: var(--radius);
+            cursor: pointer;
+        }
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 15, 0.60);
+            z-index: 15;
+        }
+
+        @media (max-width: 768px) {
+            .menu-btn { display: block; }
+            aside {
+                position: fixed;
+                inset: 0 auto 0 0;
+                transform: translateX(-100%);
+                width: 290px;
+                min-width: 290px;
+            }
+            aside.show { transform: translateX(0); }
+            .menu-overlay.show { display: block; }
+            .mp-hd     { padding: 20px 18px 12px; }
+            .mp-params { padding: 14px 18px 0; }
+            .mp-act    { padding: 12px 18px; }
+            #res       { margin: 6px 18px 16px; }
+            .mp-hd h2  { font-size: 15px; }
+        }
+
+        /* ═══════════════════════════════
+               Reduced Motion
+           ═══════════════════════════════ */
+        @media (prefers-reduced-motion: reduce) {
+            .btn.run    { animation: none; }
+            .mp.on       { animation: none; }
+            .toast       { animation: none; }
+            main::before { display: none; }
+        }
     </style>
 </head>
 <body>
-<aside>
-    <div class="hdr"><span class="ico">*</span><span class="ttl">JavaToolBox</span><button id="btnRefresh">Refresh</button></div>
-    <div class="search"><input id="search" type="text" placeholder="Search methods..."></div>
+
+<button class="menu-btn" id="menuBtn" aria-label="菜单">&#9776;</button>
+<div class="menu-overlay" id="menuOverlay"></div>
+
+<!-- ════ Sidebar ════ -->
+<aside id="sidebar">
+    <div class="sb-hd">
+        <span class="logo"></span>
+        <span class="name">JavaToolBox</span>
+        <span class="cnt" id="methodCount">0</span>
+    </div>
+
+    <div class="sb-srch">
+        <input id="search" type="text" placeholder="筛选方法..." autocomplete="off">
+    </div>
+
+    <div class="sb-tb">
+        <button id="btnExpandAll">展开全部</button>
+        <button id="btnCollapseAll">折叠全部</button>
+    </div>
+
     <div id="list"></div>
-    <div class="ft" id="ft"></div>
+
+    <div class="sb-ft">
+        <span class="dot" id="statusDot"></span>
+        <span id="ftText">就绪</span>
+    </div>
 </aside>
+
+<!-- ════ Main ════ -->
 <main>
-    <div class="emp" id="emp">&larr; Select a method</div>
-    <div class="pnl" id="pnl">
-        <div class="ph">
-            <div class="ci" id="tc"></div>
+    <!-- Empty -->
+    <div class="blank" id="blank">
+        <div class="hex"><span>&#9883;</span></div>
+        <div class="msg">从侧边栏选择一个方法</div>
+        <div class="sub">
+            按 <kbd>Ctrl+K</kbd> 聚焦搜索，<kbd>&uarr;</kbd><kbd>&darr;</kbd> 浏览方法<br>
+            <kbd>Ctrl+Enter</kbd> 执行，<kbd>Esc</kbd> 关闭弹窗
+        </div>
+    </div>
+
+    <!-- Method panel -->
+    <div class="mp" id="mp">
+        <div class="mp-hd">
+            <div class="cls-path" id="tc"></div>
             <h2 id="tn"></h2>
             <div class="doc" id="td"></div>
-            <div class="ri" id="tr"></div>
-            <div class="ti-wrap" id="th"></div>
-            <div class="src" id="ts"></div>
+            <div class="meta-row">
+                <div class="ri" id="tr"></div>
+                <div class="throws-row" id="th"></div>
+            </div>
+            <div class="src-path" id="ts"></div>
         </div>
-        <div class="pp" id="pp"></div>
-        <div class="act"><button class="btn run" id="rb">Run</button><button class="btn" id="btnSrc">Source</button><span class="hint">Ctrl+Enter</span></div>
+
+        <div class="mp-params" id="pp"></div>
+
+        <div class="mp-act">
+            <button class="btn run" id="rb">&#9654; 执行</button>
+            <button class="btn" id="btnSrc">源码</button>
+            <span class="shortcut">Ctrl+Enter</span>
+        </div>
+
         <div id="res">
-            <div class="rb"><span id="rs"></span><span id="rtx" style="color:var(--tx2)"></span></div>
-            <div class="tabs"><div class="tab on" data-t="stdout">stdout</div><div class="tab" data-t="stderr">stderr</div></div>
-            <div class="out"><pre id="po" class="so"></pre><pre id="pe" class="se" style="display:none"></pre></div>
+            <div class="res-bar">
+                <span id="rs"></span>
+                <div style="display:flex;align-items:center;gap:12px">
+                    <span id="rtx" style="color:var(--tx2)"></span>
+                    <button class="copy-btn" id="btnCopyOut">复制</button>
+                </div>
+            </div>
+            <div class="res-tabs">
+                <div class="res-tab on" data-t="stdout">stdout</div>
+                <div class="res-tab" data-t="stderr">stderr</div>
+            </div>
+            <div class="res-body">
+                <pre id="po" class="stdout"></pre>
+                <pre id="pe" class="stderr" style="display:none"></pre>
+            </div>
         </div>
     </div>
 </main>
-<div class="ov" id="ov"><div class="mdl"><div class="mh"><span id="mt"></span><button id="btnCloseSrc">&#x2715;</button></div><div class="mb"><pre id="mc"></pre></div></div></div>
+
+<!-- ════ Source Modal ════ -->
+<div class="ov" id="ov">
+    <div class="card">
+        <div class="card-bar">
+            <span id="mt"></span>
+            <button id="btnCloseSrc" aria-label="关闭">&times;</button>
+        </div>
+        <div class="card-body"><pre><code id="mc" class="language-java"></code></pre></div>
+    </div>
+</div>
+
+<!-- ════ Toasts ════ -->
+<div class="toasts" id="toasts"></div>
+
+<!-- ════ Scripts ════ -->
 <script>
     var M = [];
     var G = {};
     var SEL = -1;
     var EXP = {};
+    var LAST = null;
 
+    function $(id) { return document.getElementById(id); }
+
+    /* ── Init ── */
     function init() {
-        document.addEventListener("keydown", function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); go(); }
-        });
-        document.getElementById("search").addEventListener("input", function() { render(); });
-        document.getElementById("btnRefresh").addEventListener("click", function() { refresh(); });
-        document.getElementById("rb").addEventListener("click", function() { go(); });
-        document.getElementById("btnSrc").addEventListener("click", function() { vsrc(); });
-        document.getElementById("btnCloseSrc").addEventListener("click", function() { hsrc(); });
-        document.getElementById("ov").addEventListener("click", function(e) { if (e.target === this) hsrc(); });
-        document.getElementById("list").addEventListener("click", function(e) {
-            var hdr = e.target.closest(".grp-hdr");
-            if (hdr) { tog(hdr.dataset.cls); return; }
-            var it = e.target.closest(".it");
-            if (it) { sel(parseInt(it.dataset.idx)); }
-        });
-        document.getElementById("pp").addEventListener("keydown", function(e) {
+        document.addEventListener("keydown", onKey);
+        $("search").addEventListener("input", render);
+        $("btnExpandAll").addEventListener("click", function() { toggleAll(true); });
+        $("btnCollapseAll").addEventListener("click", function() { toggleAll(false); });
+        $("rb").addEventListener("click", go);
+        $("btnSrc").addEventListener("click", showSource);
+        $("btnCloseSrc").addEventListener("click", hideSource);
+        $("btnCopyOut").addEventListener("click", copyResult);
+        $("ov").addEventListener("click", function(e) { if (e.target === this) hideSource(); });
+        $("list").addEventListener("click", onListClick);
+        $("pp").addEventListener("keydown", function(e) {
             if (e.key === "Enter" && !e.isComposing) go();
         });
-        document.querySelectorAll(".tab").forEach(function(t) {
-            t.addEventListener("click", function() { stab(this.dataset.t); });
+        document.querySelectorAll(".res-tab").forEach(function(t) {
+            t.addEventListener("click", function() { switchTab(this.dataset.t); });
         });
+
+        $("menuBtn").addEventListener("click", toggleSidebar);
+        $("menuOverlay").addEventListener("click", toggleSidebar);
+
         refresh();
     }
 
-    function refresh() {
-        fetch("/api/methods").then(function(r) { return r.json(); }).then(function(data) {
-            M = data;
-        }).catch(function() {
-            M = [];
-        }).then(function() {
-            SEL = -1;
-            buildG();
-            render();
-            document.getElementById("emp").style.display = "flex";
-            document.getElementById("pnl").classList.remove("on");
-        });
+    /* ── Keyboard ── */
+    function onKey(e) {
+        var mod = e.ctrlKey || e.metaKey;
+        if (mod && e.key === "Enter") { e.preventDefault(); go(); return; }
+        if (mod && e.key === "k") { e.preventDefault(); $("search").focus(); $("search").select(); return; }
+        if (e.key === "Escape") {
+            if ($("ov").classList.contains("on")) { hideSource(); return; }
+            if (document.activeElement === $("search")) { $("search").blur(); return; }
+        }
+        if ((e.key === "ArrowDown" || e.key === "ArrowUp") && document.activeElement === $("search")) {
+            e.preventDefault();
+            navigate(e.key === "ArrowDown" ? 1 : -1);
+        }
     }
 
-    function buildG() {
+    var _nav = -1;
+    function navigate(dir) {
+        var q = $("search").value.toLowerCase();
+        var flat = [];
+        for (var k in G) {
+            G[k].forEach(function(i) {
+                if (!q) flat.push(i);
+                else {
+                    var m = M[i];
+                    if ((m.className + m.methodName + m.displayName + m.description).toLowerCase().indexOf(q) >= 0)
+                        flat.push(i);
+                }
+            });
+        }
+        if (!flat.length) return;
+        _nav = (_nav + dir + flat.length) % flat.length;
+        select(flat[_nav]);
+        var el = $("list").querySelector('.mi[data-idx="' + flat[_nav] + '"]');
+        if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+
+    /* ── Sidebar ── */
+    function toggleSidebar() {
+        $("sidebar").classList.toggle("show");
+        $("menuOverlay").classList.toggle("show");
+    }
+
+    /* ── Data ── */
+    function refresh() {
+        $("statusDot").className = "dot";
+        $("ftText").textContent = "加载中...";
+        fetch("/api/methods")
+            .then(function(r) { return r.json(); })
+            .then(function(data) { M = data; })
+            .catch(function() {
+                M = [];
+                toast("无法连接服务器", "err");
+            })
+            .finally(function() {
+                SEL = -1;
+                buildGroups();
+                render();
+                $("blank").style.display = "flex";
+                $("mp").classList.remove("on");
+                $("statusDot").className = M.length ? "dot" : "dot err";
+                $("ftText").textContent = M.length ? M.length + " 个方法" : "无方法";
+                $("methodCount").textContent = M.length;
+            });
+    }
+
+    function buildGroups() {
         G = {};
         M.forEach(function(m, i) {
             if (!G[m.className]) G[m.className] = [];
@@ -177,175 +989,267 @@
         });
     }
 
-    function render() {
-        var el = document.getElementById("list");
-        var q = document.getElementById("search").value.toLowerCase();
-        if (!M.length) {
-            el.innerHTML = '<div style="padding:20px;color:var(--tx2);font-size:11px;text-align:center">No methods found<br><br><span style="opacity:.4">Place .java files in tools/</span></div>';
-            document.getElementById("ft").textContent = "";
-            return;
-        }
-        var html = "";
-        var cnt = 0;
-        for (var cls in G) {
-            var idx = G[cls];
-            var filt = q ? idx.filter(function(i) {
-                var m = M[i];
-                return (m.className + m.methodName + m.displayName + m.description).toLowerCase().indexOf(q) >= 0;
-            }) : idx;
-            if (!filt.length) continue;
-            cnt += filt.length;
-            var exp = EXP[cls] !== false;
-            var classDesc = M[filt[0]].classDesc || "";
-            html += '<div class="grp-hdr" data-cls="' + esc(cls) + '">';
-            html += '<span class="arrow">' + (exp ? '&#9660;' : '&#9654;') + '</span>';
-            html += esc(cls);
-            html += '<span class="badge">' + filt.length + '</span>';
-            html += '</div>';
-            if (exp) {
-                if (classDesc) {
-                    html += '<div class="grp-desc">' + esc(classDesc) + '</div>';
-                }
-                filt.forEach(function(i) {
-                    var m = M[i];
-                    html += '<div class="it' + (i === SEL ? ' on' : '') + '" data-idx="' + i + '">';
-                    html += '<span class="mt">' + esc(m.shortName) + '</span>';
-                    html += '</div>';
-                });
-            }
-        }
-        el.innerHTML = html || '<div style="padding:20px;color:var(--tx2);font-size:11px;text-align:center">No match</div>';
-        document.getElementById("ft").textContent = cnt + " methods";
-    }
-
-    function tog(cls) {
-        EXP[cls] = !EXP[cls];
+    function toggleAll(val) {
+        Object.keys(G).forEach(function(k) { EXP[k] = val; });
         render();
     }
 
-    function sel(i) {
+    /* ── Render ── */
+    function render() {
+        var el = $("list");
+        var q = $("search").value.toLowerCase();
+        $("methodCount").textContent = M.length;
+
+        if (!M.length) {
+            el.innerHTML =
+                '<div style="padding:32px 20px;text-align:center;color:var(--tx2);font-size:13px;font-weight:300;line-height:1.9;letter-spacing:0.2px">' +
+                '暂无方法<br>' +
+                '<span style="opacity:0.35;font-size:11px">将 .java 文件放入 <code style="background:var(--s2);padding:2px 6px;border-radius:3px">tools/</code></span>' +
+                '</div>';
+            $("ftText").textContent = "无方法";
+            return;
+        }
+
+        var html = "";
+        var shown = 0;
+        var keys = Object.keys(G).sort();
+
+        for (var ci = 0; ci < keys.length; ci++) {
+            var cls = keys[ci];
+            var idxs = G[cls];
+            var filtered = q ? idxs.filter(function(i) {
+                var m = M[i];
+                return (m.className + m.methodName + m.displayName + m.description).toLowerCase().indexOf(q) >= 0;
+            }) : idxs;
+            if (!filtered.length) continue;
+            shown += filtered.length;
+
+            var open = EXP[cls] !== false;
+            var cd = M[filtered[0]].classDesc || "";
+
+            html += '<div class="grp-row">';
+            html += '<div class="grp-hd" data-cls="' + esc(cls) + '">';
+            html += '<span class="arr' + (open ? ' open' : '') + '">&#9654;</span>';
+            html += esc(cls);
+            html += '<span class="tag">' + filtered.length + '</span>';
+            html += '</div>';
+            if (open) {
+                if (cd) {
+                    html += '<div class="grp-note" title="' + esc(cd) + '">' + esc(cd) + '</div>';
+                }
+                for (var fi = 0; fi < filtered.length; fi++) {
+                    var i = filtered[fi];
+                    var m = M[i];
+                    html += '<div class="mi' + (i === SEL ? ' on' : '') + '" data-idx="' + i + '" title="' + esc(m.shortName) + '">';
+                    html += '<span class="fn">' + esc(m.shortName) + '</span>';
+                    html += '</div>';
+                }
+            }
+            html += '</div>';
+        }
+
+        el.innerHTML = html ||
+            '<div style="padding:32px 20px;text-align:center;color:var(--tx2);font-size:13px;font-weight:300">无匹配</div>';
+        $("ftText").textContent = shown + " / " + M.length + " 个方法";
+    }
+
+    function onListClick(e) {
+        var hdr = e.target.closest(".grp-hd");
+        if (hdr) { toggleGroup(hdr.dataset.cls); return; }
+        var mi = e.target.closest(".mi");
+        if (mi) {
+            select(parseInt(mi.dataset.idx));
+            if (window.innerWidth <= 768) toggleSidebar();
+        }
+    }
+
+    function toggleGroup(cls) { EXP[cls] = !EXP[cls]; render(); }
+
+    /* ── Selection ── */
+    function select(i) {
         SEL = i;
+        _nav = i;
         var m = M[i];
-        document.getElementById("emp").style.display = "none";
-        document.getElementById("pnl").classList.add("on");
-        var ciHtml = '<span class="cn">' + esc(m.className) + '</span>';
-        if (m.classDesc) ciHtml += ' <span class="cd">&mdash; ' + esc(m.classDesc) + '</span>';
-        document.getElementById("tc").innerHTML = ciHtml;
-        document.getElementById("tn").innerHTML = esc(m.signature) + ' <span class="rt">' + esc(m.returnType) + '</span>';
-        document.getElementById("td").textContent = m.description || "No description";
-        var tr = document.getElementById("tr");
+        $("blank").style.display = "none";
+        $("mp").classList.add("on");
+
+        // class path
+        var ci = '<span class="cn">' + esc(m.className) + '</span>';
+        if (m.classDesc) ci += ' <span class="cd">&mdash; ' + esc(m.classDesc) + '</span>';
+        $("tc").innerHTML = ci;
+        $("tn").innerHTML = esc(m.signature) + ' <span class="rt">' + esc(m.returnType) + '</span>';
+        $("td").textContent = m.description || "无描述信息。";
+
+        // return
+        var tr = $("tr");
         if (m.returnType !== "void") {
-            var rHtml = '<span class="rl">Returns</span> ' + esc(m.returnType);
-            if (m.returnDesc) rHtml += ' &mdash; ' + esc(m.returnDesc);
-            tr.innerHTML = rHtml;
+            var rh = '<span class="ml">返回</span>' + esc(m.returnType);
+            if (m.returnDesc) rh += ' <span style="opacity:0.5">&mdash; ' + esc(m.returnDesc) + '</span>';
+            tr.innerHTML = rh;
             tr.style.display = "";
-        } else {
-            tr.style.display = "none";
-        }
-        var th = document.getElementById("th");
+        } else { tr.style.display = "none"; }
+
+        // throws
+        var th = $("th");
         if (m.throwsList && m.throwsList.length) {
-            var thHtml = '<span class="tl">Throws</span> ';
+            var thh = '<span class="ml">抛出</span>';
             m.throwsList.forEach(function(t) {
-                thHtml += '<span class="ti" title="' + esc(t.desc) + '">' + esc(t.exception) + '</span>';
+                thh += '<span class="tchip" title="' + esc(t.desc) + '">' + esc(t.exception) + '</span>';
             });
-            th.innerHTML = thHtml;
+            th.innerHTML = thh;
             th.style.display = "";
-        } else {
-            th.style.display = "none";
-        }
-        document.getElementById("ts").textContent = m.source;
-        var pp = document.getElementById("pp");
+        } else { th.style.display = "none"; }
+
+        $("ts").textContent = m.source;
+
+        // params
+        var pp = $("pp");
         if (!m.params.length) {
-            pp.innerHTML = '<div class="empty">No parameters</div>';
+            pp.innerHTML = '<div class="no-params">此方法无需参数。</div>';
         } else {
             var h = "";
             m.params.forEach(function(p, idx) {
-                var ph = esc(p.type) + " value" + (p.type.indexOf("[]") >= 0 ? " (space-separated)" : "");
+                var ph = esc(p.type) + " 值";
+                var long = p.type === "java.lang.String" || p.type === "String";
                 h += '<div class="pr">';
-                h += '<label><span class="pn">' + esc(p.name) + '</span><span class="pt2">' + esc(p.type) + '</span></label>';
-                h += '<input id="p' + idx + '" placeholder="' + ph + '">';
-                if (p.desc) h += '<div class="pd">' + esc(p.desc) + '</div>';
+                h += '<div class="pr-lbl"><span class="pr-name">' + esc(p.name) + '</span><span class="pr-type">' + esc(p.type) + '</span></div>';
+                if (long) {
+                    h += '<textarea id="p' + idx + '" placeholder="' + ph + '" rows="2"></textarea>';
+                } else {
+                    h += '<input id="p' + idx + '" placeholder="' + ph + '">';
+                }
+                if (p.desc) h += '<div class="pr-hint">' + esc(p.desc) + '</div>';
                 h += '</div>';
             });
             pp.innerHTML = h;
         }
-        document.getElementById("res").classList.remove("on");
+
+        $("res").classList.remove("on");
+        $("res").classList.remove("has-data");
+        LAST = null;
         render();
-        var f = pp.querySelector("input");
-        if (f) f.focus();
+
+        var f = pp.querySelector("input, textarea");
+        if (f) { f.focus(); f.select(); }
     }
 
+    /* ── Execute ── */
     function go() {
         if (SEL < 0) return;
         var m = M[SEL];
-        var btn = document.getElementById("rb");
+        var btn = $("rb");
         var args = [];
         m.params.forEach(function(p, idx) {
-            var el = document.getElementById("p" + idx);
+            var el = $("p" + idx);
             if (el) {
                 var v = el.value.trim();
                 if (v) {
                     if (p.type.indexOf("[]") >= 0) {
-                        v.split(/\s+/).forEach(function(a) { args.push(a); });
-                    } else {
-                        args.push(v);
-                    }
+                        v.split(/\s+/).forEach(function(a) { if (a) args.push(a); });
+                    } else { args.push(v); }
                 }
             }
         });
+
         btn.disabled = true;
-        btn.innerHTML = '<span class="sp"></span>Running';
-        document.getElementById("res").classList.add("on");
-        document.getElementById("rs").innerHTML = '<span class="sp"></span>';
-        document.getElementById("rtx").textContent = "";
-        document.getElementById("po").textContent = "";
-        document.getElementById("pe").textContent = "";
-        stab("stdout");
+        btn.innerHTML = '<span class="spin"></span>执行中';
+        $("res").classList.add("on");
+        $("res").classList.remove("has-data");
+        $("rs").innerHTML = '<span class="spin"></span>';
+        $("rtx").textContent = "";
+        $("po").textContent = "";
+        $("pe").textContent = "";
+        switchTab("stdout");
+
         fetch("/api/run", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({className: m.className, methodName: m.methodName, args: args})
-        }).then(function(r) { return r.json(); }).then(function(r) {
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ className: m.className, methodName: m.methodName, args: args })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            LAST = r;
             var ok = r.exitCode === 0 && !r.stderr;
-            document.getElementById("rs").innerHTML = ok
-                ? '<span style="color:var(--ok)">OK</span>'
-                : '<span style="color:var(--er)">Exit ' + r.exitCode + '</span>';
-            document.getElementById("rtx").textContent = r.ms + "ms";
-            document.getElementById("po").textContent = r.stdout || "(no output)";
-            document.getElementById("pe").textContent = r.stderr || "(no errors)";
-            if (!ok && r.stderr) stab("stderr");
-        }).catch(function(e) {
-            document.getElementById("rs").innerHTML = '<span style="color:var(--er)">Error</span>';
-            document.getElementById("po").textContent = e.message;
-        }).then(function() {
+            $("rs").innerHTML = ok
+                ? '<span style="color:var(--ok);font-weight:600">&#10003; 成功</span>'
+                : '<span style="color:var(--er);font-weight:600">&#10007; 退出 ' + r.exitCode + '</span>';
+            $("rtx").textContent = r.ms + "ms";
+            $("po").textContent = r.stdout || "(空)";
+            $("pe").textContent = r.stderr || "(空)";
+            $("res").classList.add("has-data");
+            if (!ok && r.stderr) switchTab("stderr");
+        })
+        .catch(function(e) {
+            $("rs").innerHTML = '<span style="color:var(--er);font-weight:600">网络错误</span>';
+            $("po").textContent = e.message || "";
+            LAST = null;
+        })
+        .finally(function() {
             btn.disabled = false;
-            btn.innerHTML = "Run";
+            btn.innerHTML = "&#9654; 执行";
         });
     }
 
-    function vsrc() {
+    function copyResult() {
+        if (!LAST) return;
+        var active = document.querySelector(".res-tab.on");
+        var tab = active ? active.dataset.t : "stdout";
+        var text = LAST[tab] || "";
+        navigator.clipboard.writeText(text).then(function() {
+            toast(tab + " 已复制", "ok");
+        }).catch(function() {
+            toast("复制失败", "err");
+        });
+    }
+
+    /* ── Source ── */
+    function showSource() {
         if (SEL < 0) return;
         var m = M[SEL];
-        fetch("/api/source?class=" + encodeURIComponent(m.className)).then(function(r) { return r.text(); }).then(function(c) {
-            document.getElementById("mt").textContent = m.source;
-            document.getElementById("mc").textContent = c;
-            document.getElementById("ov").classList.add("on");
-        }).catch(function() { alert("Failed to load source"); });
+        $("mt").textContent = m.source;
+        $("mc").textContent = "加载中...";
+        $("mc").className = "language-java";
+        $("ov").classList.add("on");
+        fetch("/api/source?class=" + encodeURIComponent(m.className))
+            .then(function(r) { return r.text(); })
+            .then(function(c) {
+                $("mc").textContent = c;
+                if (typeof hljs !== "undefined") hljs.highlightElement($("mc"));
+            })
+            .catch(function() { $("mc").textContent = "加载失败。"; });
     }
 
-    function hsrc() {
-        document.getElementById("ov").classList.remove("on");
+    function hideSource() {
+        $("ov").classList.remove("on");
+        $("mc").textContent = "";
+        $("mc").removeAttribute("data-highlighted");
     }
 
-    function stab(n) {
-        document.querySelectorAll(".tab").forEach(function(t) {
+    /* ── Tabs ── */
+    function switchTab(n) {
+        document.querySelectorAll(".res-tab").forEach(function(t) {
             t.classList.toggle("on", t.dataset.t === n);
         });
-        document.getElementById("po").style.display = n === "stdout" ? "block" : "none";
-        document.getElementById("pe").style.display = n === "stderr" ? "block" : "none";
+        $("po").style.display = n === "stdout" ? "block" : "none";
+        $("pe").style.display = n === "stderr" ? "block" : "none";
     }
 
+    /* ── Toast ── */
+    function toast(msg, type) {
+        var el = document.createElement("div");
+        el.className = "toast" + (type ? " " + type : "");
+        el.textContent = msg;
+        $("toasts").appendChild(el);
+        setTimeout(function() {
+            el.style.opacity = "0";
+            el.style.transition = "opacity 0.3s";
+            setTimeout(function() { el.remove(); }, 300);
+        }, 2800);
+    }
+
+    /* ── Escape ── */
     function esc(s) {
+        if (!s) return "";
         var d = document.createElement("div");
         d.textContent = s;
         return d.innerHTML;
@@ -353,5 +1257,8 @@
 
     init();
 </script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/java.min.js"></script>
 </body>
 </html>
