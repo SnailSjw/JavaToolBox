@@ -13,24 +13,85 @@ public class JavaToolBox {
 
     // ═══════════════════ Data ═══════════════════
 
+    static class ThrowsInfo {
+        final String exception, desc;
+        ThrowsInfo(String e, String d) { exception = e; desc = d; }
+    }
+
+    static class ParsedJavadoc {
+        String description = "";
+        LinkedHashMap<String, String> params = new LinkedHashMap<>();
+        String returnDesc = "";
+        List<ThrowsInfo> throwsList = new ArrayList<>();
+
+        static ParsedJavadoc parse(String raw) {
+            var r = new ParsedJavadoc();
+            if (raw == null || raw.trim().isEmpty()) return r;
+            raw = raw.replaceAll("\\{@(?:code|link|literal|value)[^}]*\\}", "");
+            String[] lines = raw.split("\\n");
+            var descLines = new ArrayList<String>();
+            String curTag = null, curParam = null;
+            var buf = new StringBuilder();
+            for (String line : lines) {
+                String cl = line.replaceAll("^\\s*\\*?\\s?", "").trim();
+                if (cl.isEmpty()) { if (curTag != null) buf.append(" "); continue; }
+                if (cl.startsWith("@")) {
+                    if (curTag != null) flush(r, curTag, curParam, buf.toString().trim());
+                    String rest = cl.substring(1).trim();
+                    int sp = rest.indexOf(' ');
+                    if (sp < 0) { curTag = rest; curParam = null; buf = new StringBuilder(); continue; }
+                    curTag = rest.substring(0, sp);
+                    rest = rest.substring(sp + 1).trim();
+                    if ("param".equals(curTag)) {
+                        int sp2 = rest.indexOf(' ');
+                        if (sp2 > 0) { curParam = rest.substring(0, sp2); buf = new StringBuilder(rest.substring(sp2 + 1)); }
+                        else { curParam = rest; buf = new StringBuilder(); }
+                    } else { curParam = null; buf = new StringBuilder(rest); }
+                } else if (curTag != null) { buf.append(" ").append(cl); }
+                else { descLines.add(cl); }
+            }
+            if (curTag != null) flush(r, curTag, curParam, buf.toString().trim());
+            r.description = String.join(" ", descLines).replaceAll("\\s{2,}", " ").trim();
+            return r;
+        }
+
+        static void flush(ParsedJavadoc r, String tag, String param, String content) {
+            if (content.isEmpty()) return;
+            switch (tag) {
+                case "param" -> { if (param != null) r.params.put(param, content); }
+                case "return", "returns" -> r.returnDesc = content;
+                case "throws", "exception" -> {
+                    int sp = content.indexOf(' ');
+                    if (sp > 0) r.throwsList.add(new ThrowsInfo(content.substring(0, sp), content.substring(sp + 1).trim()));
+                    else r.throwsList.add(new ThrowsInfo(content, ""));
+                }
+            }
+        }
+    }
+
     static class ParamInfo {
-        final String name, type;
-        ParamInfo(String n, String t) { name = n; type = t; }
+        final String name, type, desc;
+        ParamInfo(String n, String t) { name = n; type = t; desc = ""; }
+        ParamInfo(String n, String t, String d) { name = n; type = t; desc = d; }
     }
 
     static class MethodInfo {
-        final String className, methodName, desc, source, returnType;
+        final String className, methodName, desc, source, returnType, returnDesc, classDesc;
         final ParamInfo[] params;
-        MethodInfo(String cn, String mn, String d, ParamInfo[] p, String rt, String s) {
-            className = cn; methodName = mn; desc = d; params = p; returnType = rt; source = s;
+        final List<ThrowsInfo> throwsList;
+        MethodInfo(String cn, String mn, String d, ParamInfo[] p, String rt, String rd, String cd, List<ThrowsInfo> tl, String s) {
+            className = cn; methodName = mn; desc = d; params = p; returnType = rt; returnDesc = rd; classDesc = cd; throwsList = tl; source = s;
         }
         String displayName() {
-            String simple = className.contains(".") ? className.substring(className.lastIndexOf('.') + 1) : className;
+            String c = className.contains(".") ? className.substring(className.lastIndexOf('.') + 1) : className;
             String p = Arrays.stream(params).map(a -> a.type + " " + a.name).collect(Collectors.joining(", "));
-            return simple + "." + methodName + "(" + p + ")";
+            return c + "." + methodName + "(" + p + ")";
+        }
+        String signature() {
+            String p = Arrays.stream(params).map(a -> a.type + " " + a.name).collect(Collectors.joining(", "));
+            return methodName + "(" + p + ")";
         }
         String shortName() {
-            String simple = className.contains(".") ? className.substring(className.lastIndexOf('.') + 1) : className;
             String p = Arrays.stream(params).map(a -> a.type).collect(Collectors.joining(", "));
             return methodName + "(" + p + ")";
         }
@@ -59,8 +120,7 @@ public class JavaToolBox {
     JavaToolBox(String dir, int port, JavaCompiler jc) {
         toolsDir = Paths.get(dir).toAbsolutePath();
         buildDir = toolsDir.resolve(".build");
-        this.port = port;
-        this.compiler = jc;
+        this.port = port; this.compiler = jc;
     }
 
     void boot() throws Exception {
@@ -85,7 +145,6 @@ public class JavaToolBox {
     static final String RUNNER_SRC = """
 import java.lang.reflect.*;
 import java.util.*;
-
 public class MethodRunner {
     public static void main(String[] args) throws Throwable {
         String cls = args[0], mtd = args[1];
@@ -96,7 +155,7 @@ public class MethodRunner {
             if (!m.getName().equals(mtd)) continue;
             if (!Modifier.isPublic(m.getModifiers()) || !Modifier.isStatic(m.getModifiers())) continue;
             Class<?>[] t = m.getParameterTypes();
-            if (t.length == margs.length || (t.length > 0 && t[t.length - 1] == String[].class && margs.length >= t.length - 1)) {
+            if (t.length == margs.length || (t.length > 0 && t[t.length-1] == String[].class && margs.length >= t.length-1)) {
                 target = m; break;
             }
         }
@@ -178,7 +237,7 @@ public class MethodRunner {
         return String.join(File.pathSeparator, paths);
     }
 
-    // ═══════════════════ Method Scanning ═══════════════════
+    // ═══════════════════ Method Scanning + Javadoc ═══════════════════
 
     static final Pattern METHOD_RE = Pattern.compile(
             "public\\s+static\\s+([\\w.\\[\\]<> ,?]+)\\s+(\\w+)\\s*\\(([^)]*)\\)");
@@ -194,15 +253,30 @@ public class MethodRunner {
                 String pkg = rx(content, "package\\s+([\\w.]+)\\s*;");
                 String base = src.getFileName().toString().replace(".java", "");
                 String fullCls = pkg.isEmpty() ? base : pkg + "." + base;
+
+                // Class-level Javadoc
+                String classDesc = ParsedJavadoc.parse(extractClassDoc(content)).description;
+
+                // Methods
                 Matcher mm = METHOD_RE.matcher(content);
                 while (mm.find()) {
                     String retType = mm.group(1).trim();
                     String mtdName = mm.group(2);
-                    String paramStr = mm.group(3).trim();
-                    ParamInfo[] params = parseParamDecl(paramStr);
-                    String javadoc = extractMethodJavadoc(content, mm.start());
+                    ParamInfo[] params = parseParamDecl(mm.group(3).trim());
+
+                    // Method-level Javadoc with @param, @return, @throws
+                    ParsedJavadoc pj = ParsedJavadoc.parse(extractRawDoc(content, mm.start()));
+
+                    // Merge @param descriptions into parameter list
+                    ParamInfo[] enriched = new ParamInfo[params.length];
+                    for (int i = 0; i < params.length; i++) {
+                        enriched[i] = new ParamInfo(params[i].name, params[i].type,
+                                pj.params.getOrDefault(params[i].name, ""));
+                    }
+
                     String rel = toolsDir.relativize(src).toString().replace('\\', '/');
-                    found.add(new MethodInfo(fullCls, mtdName, javadoc, params, retType, rel));
+                    found.add(new MethodInfo(fullCls, mtdName, pj.description, enriched,
+                            retType, pj.returnDesc, classDesc, pj.throwsList, rel));
                 }
             }
         } catch (IOException ignored) {}
@@ -236,23 +310,39 @@ public class MethodRunner {
         return r.toArray(new String[0]);
     }
 
-    String extractMethodJavadoc(String source, int pos) {
+    /** Extract raw doc text between and before a given position */
+    String extractRawDoc(String source, int pos) {
         String before = source.substring(0, pos).trim();
         int endDoc = before.lastIndexOf("*/");
         if (endDoc < 0) return "";
         int startDoc = before.lastIndexOf("/**", endDoc);
         if (startDoc < 0) return "";
-        String between = before.substring(endDoc + 2).trim();
+        String between = before.substring(endDoc + 2);
         for (String line : between.split("\\n")) {
             String l = line.trim();
             if (l.isEmpty() || l.startsWith("@")) continue;
             return "";
         }
-        String doc = before.substring(startDoc + 3, endDoc);
-        return Arrays.stream(doc.split("\\n"))
-                .map(l -> l.replaceAll("^\\s*\\*?\\s?", "").trim())
-                .filter(l -> !l.isEmpty() && !l.startsWith("@"))
-                .collect(Collectors.joining(" "));
+        return before.substring(startDoc + 3, endDoc);
+    }
+
+    /** Extract class-level Javadoc (the ... immediately before the class declaration) */
+    String extractClassDoc(String source) {
+        Matcher cm = Pattern.compile(
+                "\\bpublic\\s+(?:abstract\\s+)?(?:final\\s+)?(?:class|interface|enum)\\s+\\w+").matcher(source);
+        if (!cm.find()) return "";
+        String before = source.substring(0, cm.start()).trim();
+        int endDoc = before.lastIndexOf("*/");
+        if (endDoc < 0) return "";
+        int startDoc = before.lastIndexOf("/**", endDoc);
+        if (startDoc < 0) return "";
+        String between = before.substring(endDoc + 2);
+        for (String line : between.split("\\n")) {
+            String l = line.trim();
+            if (l.isEmpty() || l.startsWith("@")) continue;
+            return "";
+        }
+        return before.substring(startDoc + 3, endDoc);
     }
 
     // ═══════════════════ Execution ═══════════════════
@@ -284,14 +374,25 @@ public class MethodRunner {
                     .append("\",\"methodName\":\"").append(je(m.methodName))
                     .append("\",\"displayName\":\"").append(je(m.displayName()))
                     .append("\",\"shortName\":\"").append(je(m.shortName()))
+                    .append("\",\"signature\":\"").append(je(m.signature()))
                     .append("\",\"description\":\"").append(je(m.desc))
                     .append("\",\"returnType\":\"").append(je(m.returnType))
+                    .append("\",\"returnDesc\":\"").append(je(m.returnDesc))
+                    .append("\",\"classDesc\":\"").append(je(m.classDesc))
                     .append("\",\"source\":\"").append(je(m.source))
-                    .append("\",\"params\":[");
+                    .append("\",\"throwsList\":[");
+            for (int i = 0; i < m.throwsList.size(); i++) {
+                if (i > 0) sb.append(",");
+                var t = m.throwsList.get(i);
+                sb.append("{\"exception\":\"").append(je(t.exception))
+                        .append("\",\"desc\":\"").append(je(t.desc)).append("\"}");
+            }
+            sb.append("],\"params\":[");
             for (int i = 0; i < m.params.length; i++) {
                 if (i > 0) sb.append(",");
                 sb.append("{\"name\":\"").append(je(m.params[i].name))
-                        .append("\",\"type\":\"").append(je(m.params[i].type)).append("\"}");
+                        .append("\",\"type\":\"").append(je(m.params[i].type))
+                        .append("\",\"desc\":\"").append(je(m.params[i].desc)).append("\"}");
             }
             sb.append("]}");
         }
@@ -350,7 +451,6 @@ public class MethodRunner {
     void close(Closeable c) { try { c.close(); } catch (IOException ignored) {} }
 
     // ═══════════════════ Web UI ═══════════════════
-    // KEY FIX: 使用 data-* 属性 + 事件委托，彻底避免 Java text block 的 \' 转义问题
 
     static final String PAGE = """
 <!DOCTYPE html>
@@ -365,7 +465,7 @@ public class MethodRunner {
 :root{--bg:#09090b;--s1:#111114;--s2:#1a1a1e;--s3:#222228;--bd:#2a2a30;--ac:#d4a84b;--ac2:#b8922e;--tx:#c8c4bc;--tx2:#777;--ok:#4ade80;--er:#ef4444;--blue:#60a5fa}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'JetBrains Mono','Fira Code',Consolas,monospace;font-size:13px;color:var(--tx);background:var(--bg);display:flex;height:100vh;overflow:hidden}
-aside{width:300px;min-width:300px;background:var(--s1);border-right:1px solid var(--bd);display:flex;flex-direction:column}
+aside{width:310px;min-width:310px;background:var(--s1);border-right:1px solid var(--bd);display:flex;flex-direction:column}
 .hdr{padding:16px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px}
 .hdr .ico{color:var(--ac);font-size:15px}
 .hdr .ttl{flex:1;font-size:12px;font-weight:600;letter-spacing:1px}
@@ -378,40 +478,50 @@ aside{width:300px;min-width:300px;background:var(--s1);border-right:1px solid va
 #list{flex:1;overflow-y:auto;padding:4px 0}
 .grp-hdr{padding:7px 16px;font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;display:flex;align-items:center;gap:6px;transition:color .15s}
 .grp-hdr:hover{color:var(--tx)}
-.grp-hdr .arrow{font-size:9px;width:12px;transition:transform .2s;display:inline-block}
+.grp-hdr .arrow{font-size:9px;width:12px;display:inline-block;transition:transform .2s}
 .grp-hdr .badge{margin-left:auto;background:var(--s3);color:var(--tx2);font-size:9px;padding:1px 6px;border-radius:8px;font-weight:400}
-.it{padding:6px 16px 6px 34px;cursor:pointer;font-size:11px;color:var(--tx2);transition:all .12s;border-left:2px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grp-desc{padding:0 16px 4px 32px;font-size:10px;color:var(--tx2);opacity:.45;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.it{padding:6px 16px 6px 32px;cursor:pointer;font-size:11px;color:var(--tx2);transition:all .12s;border-left:2px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .it:hover{background:var(--s2);color:var(--tx)}
 .it.on{background:var(--s2);border-left-color:var(--ac);color:var(--ac)}
 .it .mt{color:var(--tx)}
 .ft{padding:8px 18px;border-top:1px solid var(--bd);font-size:10px;color:var(--tx2)}
 main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .emp{flex:1;display:flex;align-items:center;justify-content:center;color:var(--tx2);font-size:13px}
-.pnl{flex:1;display:none;flex-direction:column;overflow:hidden}
+.pnl{flex:1;display:none;flex-direction:column;overflow-y:auto}
 .pnl.on{display:flex;animation:fi .2s ease}
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .ph{padding:28px 36px 18px;border-bottom:1px solid var(--bd)}
+.ph .ci{font-size:11px;color:var(--tx2);margin-bottom:10px;line-height:1.5}
+.ph .ci .cn{color:var(--ac);font-weight:500}
+.ph .ci .cd{opacity:.6}
 .ph h2{font-size:16px;font-weight:600;margin-bottom:6px;word-break:break-all}
 .ph h2 .rt{color:var(--blue);font-weight:400;font-size:12px}
 .ph .doc{font-size:12px;color:var(--tx2);line-height:1.7;margin-top:4px}
-.ph .src{font-size:10px;color:var(--tx2);opacity:.3;margin-top:4px}
-.pp{padding:18px 36px 0;display:flex;flex-direction:column;gap:10px}
+.ph .ri{font-size:11px;color:var(--tx2);margin-top:5px}
+.ph .ri .rl{opacity:.5;margin-right:4px}
+.ph .ti-wrap{font-size:11px;color:var(--tx2);margin-top:4px}
+.ph .ti-wrap .tl{opacity:.5;margin-right:4px}
+.ph .ti-wrap .ti{display:inline-block;background:rgba(239,68,68,.08);color:var(--er);padding:1px 6px;border-radius:3px;margin-right:5px;font-size:10px;cursor:help}
+.ph .src{font-size:10px;color:var(--tx2);opacity:.3;margin-top:6px}
+.pp{padding:18px 36px 0;display:flex;flex-direction:column;gap:12px}
 .pp .empty{color:var(--tx2);font-size:11px;font-style:italic}
-.pr{display:flex;flex-direction:column;gap:4px}
+.pr{display:flex;flex-direction:column;gap:3px}
 .pr label{font-size:10px;color:var(--tx2);display:flex;align-items:center;gap:6px}
 .pr label .pn{color:var(--tx);font-weight:500}
 .pr label .pt2{color:var(--blue);font-size:9px;background:rgba(96,165,250,.08);padding:1px 5px;border-radius:3px}
 .pr input{width:100%;background:var(--s1);border:1px solid var(--bd);color:var(--tx);padding:7px 10px;font:12px inherit;border-radius:4px;outline:none;transition:border-color .2s}
 .pr input:focus{border-color:var(--ac)}
 .pr input::placeholder{color:var(--tx2);opacity:.3}
-.act{padding:14px 36px;display:flex;gap:8px}
+.pr .pd{font-size:10px;color:var(--tx2);line-height:1.4;margin-top:2px;padding-left:2px;opacity:.6}
+.act{padding:14px 36px;display:flex;gap:8px;align-items:center}
 .btn{background:none;border:1px solid var(--bd);color:var(--tx);padding:7px 18px;font:11px inherit;border-radius:5px;cursor:pointer;transition:all .2s}
 .btn:hover{border-color:var(--s3);background:var(--s2)}
 .btn.run{background:var(--ac);border-color:var(--ac);color:#000;font-weight:600}
 .btn.run:hover{background:var(--ac2);border-color:var(--ac2)}
 .btn.run:disabled{opacity:.35;cursor:wait}
-.hint{font-size:10px;color:var(--tx2);opacity:.4;padding:0 36px}
-#res{flex:1;margin:8px 36px 28px;border:1px solid var(--bd);border-radius:5px;display:none;flex-direction:column;min-height:0}
+.hint{font-size:10px;color:var(--tx2);opacity:.35}
+#res{flex:1;margin:8px 36px 28px;border:1px solid var(--bd);border-radius:5px;display:none;flex-direction:column;min-height:0;max-height:50vh}
 #res.on{display:flex}
 .rb{padding:7px 12px;background:var(--s1);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;font-size:11px;border-radius:5px 5px 0 0}
 .tabs{display:flex;background:var(--s1);border-bottom:1px solid var(--bd)}
@@ -448,12 +558,18 @@ main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 <main>
 <div class="emp" id="emp">&larr; Select a method</div>
 <div class="pnl" id="pnl">
-<div class="ph"><h2 id="tn"></h2><div class="doc" id="td"></div><div class="src" id="ts"></div></div>
+<div class="ph">
+<div class="ci" id="tc"></div>
+<h2 id="tn"></h2>
+<div class="doc" id="td"></div>
+<div class="ri" id="tr"></div>
+<div class="ti-wrap" id="th"></div>
+<div class="src" id="ts"></div>
+</div>
 <div class="pp" id="pp"></div>
-<p class="hint">Ctrl+Enter to run</p>
-<div class="act"><button class="btn run" id="rb">Run</button><button class="btn" id="btnSrc">Source</button></div>
+<div class="act"><button class="btn run" id="rb">Run</button><button class="btn" id="btnSrc">Source</button><span class="hint">Ctrl+Enter</span></div>
 <div id="res">
-<div class="rb"><span id="rs"></span><span id="rt" style="color:var(--tx2)"></span></div>
+<div class="rb"><span id="rs"></span><span id="rtx" style="color:var(--tx2)"></span></div>
 <div class="tabs"><div class="tab on" data-t="stdout">stdout</div><div class="tab" data-t="stderr">stderr</div></div>
 <div class="out"><pre id="po" class="so"></pre><pre id="pe" class="se" style="display:none"></pre></div>
 </div>
@@ -534,17 +650,21 @@ function render() {
         var idx = G[cls];
         var filt = q ? idx.filter(function(i) {
             var m = M[i];
-            return (m.className + m.methodName + m.displayName).toLowerCase().indexOf(q) >= 0;
+            return (m.className + m.methodName + m.displayName + m.description).toLowerCase().indexOf(q) >= 0;
         }) : idx;
         if (!filt.length) continue;
         cnt += filt.length;
         var exp = EXP[cls] !== false;
+        var classDesc = M[filt[0]].classDesc || "";
         html += '<div class="grp-hdr" data-cls="' + esc(cls) + '">';
         html += '<span class="arrow">' + (exp ? '&#9660;' : '&#9654;') + '</span>';
         html += esc(cls);
         html += '<span class="badge">' + filt.length + '</span>';
         html += '</div>';
         if (exp) {
+            if (classDesc) {
+                html += '<div class="grp-desc">' + esc(classDesc) + '</div>';
+            }
             filt.forEach(function(i) {
                 var m = M[i];
                 html += '<div class="it' + (i === SEL ? ' on' : '') + '" data-idx="' + i + '">';
@@ -567,9 +687,46 @@ function sel(i) {
     var m = M[i];
     document.getElementById("emp").style.display = "none";
     document.getElementById("pnl").classList.add("on");
-    document.getElementById("tn").innerHTML = esc(m.displayName) + ' <span class="rt">' + esc(m.returnType) + '</span>';
+
+    // Class info
+    var ciHtml = '<span class="cn">' + esc(m.className) + '</span>';
+    if (m.classDesc) ciHtml += ' <span class="cd">&mdash; ' + esc(m.classDesc) + '</span>';
+    document.getElementById("tc").innerHTML = ciHtml;
+
+    // Method signature + return type
+    document.getElementById("tn").innerHTML = esc(m.signature) + ' <span class="rt">' + esc(m.returnType) + '</span>';
+
+    // Method description
     document.getElementById("td").textContent = m.description || "No description";
+
+    // Return info
+    var tr = document.getElementById("tr");
+    if (m.returnType !== "void") {
+        var rHtml = '<span class="rl">Returns</span> ' + esc(m.returnType);
+        if (m.returnDesc) rHtml += ' &mdash; ' + esc(m.returnDesc);
+        tr.innerHTML = rHtml;
+        tr.style.display = "";
+    } else {
+        tr.style.display = "none";
+    }
+
+    // Throws info
+    var th = document.getElementById("th");
+    if (m.throwsList && m.throwsList.length) {
+        var thHtml = '<span class="tl">Throws</span> ';
+        m.throwsList.forEach(function(t) {
+            thHtml += '<span class="ti" title="' + esc(t.desc) + '">' + esc(t.exception) + '</span>';
+        });
+        th.innerHTML = thHtml;
+        th.style.display = "";
+    } else {
+        th.style.display = "none";
+    }
+
+    // Source
     document.getElementById("ts").textContent = m.source;
+
+    // Parameters with descriptions
     var pp = document.getElementById("pp");
     if (!m.params.length) {
         pp.innerHTML = '<div class="empty">No parameters</div>';
@@ -580,10 +737,12 @@ function sel(i) {
             h += '<div class="pr">';
             h += '<label><span class="pn">' + esc(p.name) + '</span><span class="pt2">' + esc(p.type) + '</span></label>';
             h += '<input id="p' + idx + '" placeholder="' + ph + '">';
+            if (p.desc) h += '<div class="pd">' + esc(p.desc) + '</div>';
             h += '</div>';
         });
         pp.innerHTML = h;
     }
+
     document.getElementById("res").classList.remove("on");
     render();
     var f = pp.querySelector("input");
@@ -612,7 +771,7 @@ function go() {
     btn.innerHTML = '<span class="sp"></span>Running';
     document.getElementById("res").classList.add("on");
     document.getElementById("rs").innerHTML = '<span class="sp"></span>';
-    document.getElementById("rt").textContent = "";
+    document.getElementById("rtx").textContent = "";
     document.getElementById("po").textContent = "";
     document.getElementById("pe").textContent = "";
     stab("stdout");
@@ -625,7 +784,7 @@ function go() {
         document.getElementById("rs").innerHTML = ok
             ? '<span style="color:var(--ok)">OK</span>'
             : '<span style="color:var(--er)">Exit ' + r.exitCode + '</span>';
-        document.getElementById("rt").textContent = r.ms + "ms";
+        document.getElementById("rtx").textContent = r.ms + "ms";
         document.getElementById("po").textContent = r.stdout || "(no output)";
         document.getElementById("pe").textContent = r.stderr || "(no errors)";
         if (!ok && r.stderr) stab("stderr");
